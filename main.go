@@ -2,8 +2,11 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
+	"html/template"
 	"log"
 	"math"
 	"net"
@@ -16,6 +19,10 @@ import (
 	"github.com/GeertJohan/go.rice"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/tomerdmnt/go-libGeoIP"
+)
+
+var (
+	indexHtml bytes.Buffer
 )
 
 type GIJSON struct {
@@ -57,7 +64,6 @@ func readStdin() {
 		log.Fatal(err)
 	}
 	geoip, err := libgeo.LoadFromReader(dbFile)
-
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -126,9 +132,37 @@ func fillKey(count int, total int) string {
 	return ""
 }
 
+func serveIndex(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(indexHtml.Bytes())
+}
+
 func main() {
+	title := flag.String("title", "", "Optional Title")
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, `Usage: [geoipmap] [-title <title>] [-h]
+
+    geoipmap reads logs from stdin
+`)
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+
+	index, err := rice.MustFindBox("templates").String("index.tmpl")
+	if err != nil {
+		log.Fatal(err)
+	}
+	t, err := template.New("index").Parse(index)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := t.Execute(&indexHtml, map[string]string{"Title": *title}); err != nil {
+		log.Fatal(err)
+	}
+
 	http.HandleFunc("/gidata", handleGIData)
-	http.Handle("/", http.FileServer(rice.MustFindBox("public").HTTPBox()))
+	http.Handle("/resources/", http.FileServer(rice.MustFindBox("public").HTTPBox()))
+	http.HandleFunc("/", serveIndex)
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	address := fmt.Sprintf("127.0.0.1:%d", port)

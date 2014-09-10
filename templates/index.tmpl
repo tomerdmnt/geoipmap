@@ -3,17 +3,25 @@
 	<head>
 		<script src="http://d3js.org/d3.v3.min.js"></script>
 		<script src="http://d3js.org/topojson.v1.min.js"></script>
-		<script src="/datamaps.world.min.js"></script>
+		<script src="/resources/datamaps.world.min.js"></script>
+		<style>
+			h1 {
+				margin: 0 auto 0 auto;
+				font-size: 4em;
+				text-align: center;
+			}
+		</style>
 	</head>
 	<body>
+		<h1>{{.Title}}</h1>
 		<div id="container" style="margin: 0 auto 0 auto; position: relative; width: 1000px; height: 600px;"></div>
 		<script>
 			getGIData()
-			fastUpdate = setInterval(getGIData, 1000)
+			fastUpdate = setInterval(getGIData, 2000)
 			setTimeout(function() {
 				clearInterval(fastUpdate)
-				setInterval(getGIData, 60000)
-			}, 10000)
+				setInterval(getGIData, 30000)
+			}, 12000)
 
 			function getGIData() {
 				var xhr = new XMLHttpRequest();

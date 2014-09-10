@@ -24,6 +24,16 @@ $ ssh root@server.com "zcat -f /var/log/auth.log.* & tail -n 0 -F /var/log/auth.
 $ go get github.com/tomerdmnt/geoipmap
 ```
 
+# Usage
+
+```
+Usage: [geoipmap] [-title <title>] [-h]
+
+    geoipmap reads logs from stdin
+
+  -title="": Optional Title
+```
+
 # License
 
 This product includes GeoLite data created by MaxMind, available from 
