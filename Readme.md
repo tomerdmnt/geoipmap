@@ -5,13 +5,13 @@ Display access logs on a geoip world map
 ## nginx access:
 
 ```bash
-$ ssh root@server.com "zcat -f /var/log/nginx/access.log.* <(tail -n 0 -F /var/log/nginx/access.log)" | geoipmap
+$ ssh root@server.com "zcat -f /var/log/nginx/access.log.* & tail -n 0 -F /var/log/nginx/access.log" | geoipmap
 ```
 
 ## ssh access
 
 ```bash
-$ ssh root@server.com "zcat -f /var/log/auth.log.* <(tail -n 0 -F /var/log/auth.log)" | geoipmap
+$ ssh root@server.com "zcat -f /var/log/auth.log.* & tail -n 0 -F /var/log/auth.log" | geoipmap
 ```
 
 # Install
