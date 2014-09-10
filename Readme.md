@@ -1,4 +1,4 @@
-Display access logs on a geoip world map
+Display access logs on a geoip world map using [datamaps](http://datamaps.github.io/) ([d3.js](http://d3js.org/))
 
 ![screentshot](https://raw.githubusercontent.com/tomerdmnt/geoipmap/master/screenshot.png)
 
