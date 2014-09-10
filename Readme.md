@@ -4,13 +4,13 @@ Display access logs on a geoip world map
 
 # Examples
 
-## nginx access:
+## nginx accesses
 
 ```bash
 $ ssh root@server.com "zcat -f /var/log/nginx/access.log.* & tail -n 0 -F /var/log/nginx/access.log" | geoipmap
 ```
 
-## ssh access
+## ssh accesses
 
 ```bash
 $ ssh root@server.com "zcat -f /var/log/auth.log.* & tail -n 0 -F /var/log/auth.log" | geoipmap
