@@ -4,6 +4,8 @@ Display access logs on a geoip world map
 
 # Examples
 
+geoipmap reads logs from stdin
+
 ## nginx accesses
 
 ```bash
