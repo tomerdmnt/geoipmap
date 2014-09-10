@@ -140,7 +140,9 @@ func main() {
 		log.Fatal(err)
 	}
 	go func() {
-		open.Start("http://" + l.Addr().String())
+		addr := fmt.Sprintf("http://%s", l.Addr())
+		fmt.Println(addr)
+		open.Start(addr)
 	}()
 	log.Fatal(http.Serve(l, nil))
 }
