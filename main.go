@@ -51,7 +51,7 @@ func readStdin() {
 	ipRe := regexp.MustCompile("((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)")
 	scanner := bufio.NewScanner(os.Stdin)
 
-	DBBox := rice.MustFindBox("./db")
+	DBBox := rice.MustFindBox("db")
 	dbFile, err := DBBox.Open("GeoLiteCity.dat")
 	if err != nil {
 		log.Fatal(err)
@@ -128,7 +128,7 @@ func fillKey(count int, total int) string {
 
 func main() {
 	http.HandleFunc("/gidata", handleGIData)
-	http.Handle("/", http.FileServer(rice.MustFindBox("./public").HTTPBox()))
+	http.Handle("/", http.FileServer(rice.MustFindBox("public").HTTPBox()))
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	address := fmt.Sprintf("127.0.0.1:%d", port)

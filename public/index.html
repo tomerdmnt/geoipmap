@@ -9,33 +9,39 @@
 		<div id="container" style="margin: 0 auto 0 auto; position: relative; width: 1000px; height: 600px;"></div>
 		<script>
 			getGIData()
+			fastUpdate = setInterval(getGIData, 1000)
+			setTimeout(function() {
+				clearInterval(fastUpdate)
+				setInterval(getGIData, 60000)
+			}, 10000)
 
 			function getGIData() {
 				var xhr = new XMLHttpRequest();
 				xhr.onreadystatechange = function() {
 					if (xhr.readyState==4 && xhr.status==200) {
 						var gidata = JSON.parse(xhr.responseText)
-						fillmap(gidata)
+						createMap(gidata)
 					}
 				}
 				xhr.open("GET", "/gidata")
 				xhr.send()
 			}
 
-			function fillmap(gidata) {
-				container = document.getElementById('container');
+			function createMap(gidata) {
+				var container = document.getElementById('container');
 				container.innerHTML = '';
 				var map = new Datamap({
 					element: container,
 					fills: {
 						"accessed": "#cacada",
-						"0to2": "yellow",
-						"3to6": "orange",
-						"7to10": "orangered",
-						"10to100": "red"
+						"0to2": "#cc9900",
+						"3to6": "#cc6600",
+						"7to10": "#cc3300",
+						"10to100": "#cc0000"
 					},
 					data: gidata.data
 				});
+
 				map.bubbles(gidata.bubbles, {
 					popupTemplate: function(geo, data) {
 						return '<div class="hoverinfo"><center><b>' + data.city + ', ' + data.country + '</center></b><br />accessed: ' + data.count + ' times</center>';
