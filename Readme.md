@@ -1,5 +1,7 @@
 Display access logs on a geoip world map
 
+![screentshot](https://raw.githubusercontent.com/tomerdmnt/geoipmap/master/screenshot.png)
+
 # Examples
 
 ## nginx access:
