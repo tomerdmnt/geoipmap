@@ -6,53 +6,39 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"html/template"
 	"log"
-	"math"
 	"net"
 	"net/http"
 	"os"
 	"regexp"
-	"sort"
 	"strconv"
+	"text/template"
 
 	"github.com/GeertJohan/go.rice"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/tomerdmnt/go-libGeoIP"
 )
 
-var (
-	indexHtml bytes.Buffer
-)
-
 type GIJSON struct {
-	Data    map[string]*Country `json:"data"`
-	Bubbles []*City             `json:"bubbles"`
-	Total   int                 `json:"total"`
+	Countries map[string]*Country `json:"countries"`
+	Cities    []*City             `json:"cities"`
+	Total     int                 `json:"total"`
 }
 
 type Country struct {
-	Name    string `json:"country"`
-	FillKey string `json:"fillKey"`
+	Name string `json:"country"`
+	Code string `json:"code"`
 }
 
 type City struct {
 	Country   string  `json:"country"`
 	Name      string  `json:"city"`
-	Radius    float64 `json:"radius"`
 	Latitude  float32 `json:"latitude"`
 	Longitude float32 `json:"longitude"`
-	FillKey   string  `json:"fillKey"`
 	Count     int     `json:"count"`
 }
 
-type ByRadius []*City
-
-func (a ByRadius) Len() int           { return len(a) }
-func (a ByRadius) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByRadius) Less(i, j int) bool { return a[i].Radius < a[j].Radius }
-
-var gijson *GIJSON = &GIJSON{Data: make(map[string]*Country), Bubbles: []*City{}}
+var gijson *GIJSON = &GIJSON{Countries: make(map[string]*Country), Cities: []*City{}}
 
 func readStdin() {
 	ipRe := regexp.MustCompile("((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)")
@@ -80,11 +66,11 @@ func readStdin() {
 func processLocation(location *libgeo.Location) {
 	var found bool = false
 
-	gijson.Data[CountryCodes[location.CountryCode]] = &Country{Name: location.CountryName, FillKey: "accessed"}
+	gijson.Countries[location.CountryName] = &Country{Name: location.CountryName}
 
-	for _, b := range gijson.Bubbles {
-		if b.Country == location.CountryName && b.Name == location.City {
-			b.Count++
+	for _, c := range gijson.Cities {
+		if c.Country == location.CountryName && c.Name == location.City {
+			c.Count++
 			found = true
 			break
 		}
@@ -97,17 +83,12 @@ func processLocation(location *libgeo.Location) {
 			Longitude: location.Longitude,
 			Count:     1,
 		}
-		gijson.Bubbles = append(gijson.Bubbles, city)
+		gijson.Cities = append(gijson.Cities, city)
 	}
 	gijson.Total++
 }
 
 func handleGIData(w http.ResponseWriter, r *http.Request) {
-	for _, b := range gijson.Bubbles {
-		b.Radius = math.Sqrt(float64(b.Count * 5000 / gijson.Total))
-		b.FillKey = fillKey(b.Count, gijson.Total)
-	}
-	sort.Sort(sort.Reverse(ByRadius(gijson.Bubbles)))
 	json, err := json.Marshal(gijson)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -117,24 +98,25 @@ func handleGIData(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
-func fillKey(count int, total int) string {
-	percentage := count * 100 / total
-	switch {
-	case percentage >= 0 && percentage <= 2:
-		return "0to2"
-	case percentage > 2 && percentage <= 6:
-		return "3to6"
-	case percentage > 6 && percentage <= 10:
-		return "7to10"
-	case percentage > 10 && percentage <= 100:
-		return "10to100"
-	}
-	return ""
-}
+func serveIndex(title string) func(http.ResponseWriter, *http.Request) {
+	var html bytes.Buffer
 
-func serveIndex(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	w.Write(indexHtml.Bytes())
+	tmpl, err := rice.MustFindBox("templates").String("index.tmpl")
+	if err != nil {
+		log.Fatal(err)
+	}
+	t, err := template.New("index").Parse(tmpl)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := t.Execute(&html, map[string]string{"Title": title}); err != nil {
+		log.Fatal(err)
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write(html.Bytes())
+	}
 }
 
 func main() {
@@ -148,21 +130,9 @@ func main() {
 	}
 	flag.Parse()
 
-	index, err := rice.MustFindBox("templates").String("index.tmpl")
-	if err != nil {
-		log.Fatal(err)
-	}
-	t, err := template.New("index").Parse(index)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := t.Execute(&indexHtml, map[string]string{"Title": *title}); err != nil {
-		log.Fatal(err)
-	}
-
 	http.HandleFunc("/gidata", handleGIData)
 	http.Handle("/resources/", http.FileServer(rice.MustFindBox("public").HTTPBox()))
-	http.HandleFunc("/", serveIndex)
+	http.HandleFunc("/", serveIndex(*title))
 
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	address := fmt.Sprintf("127.0.0.1:%d", port)

@@ -1,61 +1,195 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<script src="http://d3js.org/d3.v3.min.js"></script>
-		<script src="http://d3js.org/topojson.v1.min.js"></script>
+		<script src="/resources/d3.v3.min.js"></script>
+		<script src="/resources/queue.v1.min.js"></script>
+		<script src="/resources/topojson.v1.min.js"></script>
 		<script src="/resources/datamaps.world.min.js"></script>
+		<script src="/resources/d3-tip.js"></script>
 		<style>
+			body {
+				margin: 0 auto 0 auto;
+			}
+
 			h1 {
 				margin: 0 auto 0 auto;
 				font-size: 4em;
 				text-align: center;
 			}
+
+			.country {
+				stroke: #fff;
+				stroke-width: .4px;
+			}
+
+			.country:hover {
+				fill: #333;
+			}
+
+			.accessed {
+				fill: #686899; !important
+			}
+
+			.accessed:hover {
+				fill: #8a8abb; !important
+			}
+
+			.bubble {
+				stroke: #ccc;
+				stroke-width: 1px;
+				opacity: .5;
+			}
+
+			.bubble:hover {
+				opacity: .8;
+			}
+						
+			.d3-tip {
+				line-height: 1;
+				font-weight: bold;
+				padding: 12px;
+				background: rgba(255, 255, 255, 0.8);
+				color: #000;
+				border-radius: 2px;
+			}
+
+			/* Creates a small triangle extender for the tooltip */
+			.d3-tip:after {
+				box-sizing: border-box;
+				display: inline;
+				font-size: 10px;
+				width: 100%;
+				line-height: 1;
+				color: rgba(255, 255, 255, 0.8);
+				content: "\25BC";
+				position: absolute;
+				text-align: center;
+			}
+
+			/* Style northward tooltips differently */
+			.d3-tip.n:after {
+				margin: -1px 0 0 0;
+				top: 100%;
+				left: 0;
+			}
 		</style>
 	</head>
 	<body>
 		<h1>{{.Title}}</h1>
-		<div id="container" style="margin: 0 auto 0 auto; position: relative; width: 1000px; height: 600px;"></div>
+
 		<script>
-			getGIData()
-			fastUpdate = setInterval(getGIData, 2000)
-			setTimeout(function() {
-				clearInterval(fastUpdate)
-				setInterval(getGIData, 30000)
-			}, 12000)
+			var width = 1200;
+			var height = 600;
 
-			function getGIData() {
-				var xhr = new XMLHttpRequest();
-				xhr.onreadystatechange = function() {
-					if (xhr.readyState==4 && xhr.status==200) {
-						var gidata = JSON.parse(xhr.responseText)
-						createMap(gidata)
-					}
-				}
-				xhr.open("GET", "/gidata")
-				xhr.send()
-			}
+			var svg = d3.select("body").append("svg")
+				.attr("width", width)
+				.attr("height", height);
 
-			function createMap(gidata) {
-				var container = document.getElementById('container');
-				container.innerHTML = '';
-				var map = new Datamap({
-					element: container,
-					fills: {
-						"accessed": "#cacada",
-						"0to2": "#cc9900",
-						"3to6": "#cc6600",
-						"7to10": "#cc3300",
-						"10to100": "#cc0000"
-					},
-					data: gidata.data
+			var g = svg.append("g")
+
+			var projection = d3.geo.equirectangular()
+				.scale(150)
+				.translate([width / 2, height / 2]);
+
+			var path = d3.geo.path()
+				.projection(projection);
+
+			var zoom = d3.behavior.zoom()
+				.translate([0, 0])
+				.scale(1)
+				.scaleExtent([1, 8])
+				.on("zoom", function zoomed() {
+					g.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+					g.select(".country").style("stroke-width", 1.5 / d3.event.scale + "px");
+				});
+			svg.call(zoom);
+
+			var tip = d3.tip()
+				.attr('class', 'd3-tip')
+				.offset([-10, 0])
+				.html(function(d) {
+					return "<strong>" + d.city + ", " + d.country + "</strong><br />" +
+						"<span>count: " + d.count + "</span>";
+				})
+			svg.call(tip);
+
+			queue()
+				.defer(d3.json, "/resources/world-110m.json")
+				.defer(d3.tsv, "/resources/world-country-names.tsv")
+				.defer(d3.json, "/gidata")
+				.await(ready);
+
+			function ready(err, world, names, gidata) {
+				if (err) throw err;
+				var countries = topojson.feature(world, world.objects.countries).features;
+
+				// country names
+				countries = countries.filter(function(d){
+					return names.some(function(n){
+						if (n.id == d.id) {
+							d.name = n.name;
+							d.code = n.code;
+							return true
+						}
+					});
 				});
 
-				map.bubbles(gidata.bubbles, {
-					popupTemplate: function(geo, data) {
-						return '<div class="hoverinfo"><center><b>' + data.city + ', ' + data.country + '</center></b><br />accessed: ' + data.count + ' times</center>';
-					}
-				})
+				// filter antarctica
+				countries = countries.filter(function(d){
+					return d.name !== 'Antarctica';
+				});
+
+				setInterval(function() {
+				d3.json("/gidata", function(err, gidata) {
+					if (err) throw err;
+
+					var maxcount = d3.max(gidata.cities, function(d){ return d.count; });
+					// radius scale
+					var radius = d3.scale.sqrt()
+						.domain([0, maxcount])
+						.range([0, 50]);
+
+					// color scale
+					var color = d3.scale.sqrt()
+						.domain([0, maxcount])
+						.range(["yellow", "red"]);
+
+					var country = g.selectAll(".country").data(countries);
+
+					country.exit().remove();
+
+					country.enter().append("path")
+						.attr("d", path)
+						.append("title").text(function(d){
+							return d.name;
+						});
+
+					country.attr("class", function(d){
+						return gidata.countries[d.name] ? "country accessed" : "country";
+					})
+
+					var circle = g.selectAll("circle").data(gidata.cities);
+
+					circle.exit().remove();
+
+					circle.enter().append("circle")
+						.attr("class", "bubble")
+						.attr("transform", function(d){
+							return "translate(" + projection([d.longitude, d.latitude]) + ")";
+						})
+						.on("mouseover", tip.show)
+						.on("mouseout", tip.hide);
+
+					circle.transition().attr("r", function(d){
+							return radius(d.count);
+						})
+						.attr("fill", function(d){
+							return color(d.count);
+						});
+				});
+				}, 1000);
 			}
+
 		</script>
 	</body>
 </html>
