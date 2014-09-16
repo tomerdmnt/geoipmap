@@ -17,6 +17,11 @@
 				text-align: center;
 			}
 
+			svg {
+				display: block;
+				margin: 0 auto 0 auto;
+			}
+
 			.country {
 				stroke: #fff;
 				stroke-width: .4px;
@@ -37,7 +42,7 @@
 			.bubble {
 				stroke: #ccc;
 				stroke-width: 1px;
-				opacity: .5;
+				opacity: .6;
 			}
 
 			.bubble:hover {
@@ -147,14 +152,15 @@
 					// radius scale
 					var radius = d3.scale.sqrt()
 						.domain([0, maxcount])
-						.range([0, 50]);
+						.range([0, 40]);
 
 					// color scale
 					var color = d3.scale.sqrt()
 						.domain([0, maxcount])
 						.range(["yellow", "red"]);
 
-					var country = g.selectAll(".country").data(countries);
+					var country = g.selectAll(".country")
+						.data(countries);
 
 					country.exit().remove();
 
@@ -168,7 +174,8 @@
 						return gidata.countries[d.name] ? "country accessed" : "country";
 					})
 
-					var circle = g.selectAll("circle").data(gidata.cities);
+					var circle = g.selectAll("circle", function key(d) { return d.name; })
+						.data(gidata.cities);
 
 					circle.exit().remove();
 
