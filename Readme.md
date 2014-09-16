@@ -20,7 +20,7 @@ $ ssh root@server.com "zcat -f /var/log/auth.log.* & tail -n 0 -F /var/log/auth.
 
 # Install
 
-install from [binaries](https://github.com/tomerdmnt/geoipmap/releases)
+Download [binaries](https://github.com/tomerdmnt/geoipmap/releases)
 
 or
 ```bash
