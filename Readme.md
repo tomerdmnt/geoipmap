@@ -20,7 +20,7 @@ $ ssh root@server.com "zcat -f /var/log/auth.log.* & tail -n 0 -F /var/log/auth.
 
 ## fail2ban
 ```bash
-$ ssh root@shalloc.com "zcat -f /var/log/fail2ban.log* & tail -n 0 -F /var/log/fail2ban.log" | grep Ban | ./geoipmap -title "fail2ban"
+$ ssh root@server.com "zcat -f /var/log/fail2ban.log* & tail -n 0 -F /var/log/fail2ban.log" | grep Ban | ./geoipmap -title "fail2ban"
 ```
 
 # Install
