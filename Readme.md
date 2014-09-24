@@ -1,4 +1,4 @@
-Display access logs on a geoip world map using [d3.js](http://d3js.org/)
+view ip accesses to your server on a world map using [d3.js](http://d3js.org/)
 
 ![screentshot](https://raw.githubusercontent.com/tomerdmnt/geoipmap/master/screenshot.png)
 
@@ -16,6 +16,11 @@ $ ssh root@server.com "zcat -f /var/log/nginx/access.log.* & tail -n 0 -F /var/l
 
 ```bash
 $ ssh root@server.com "zcat -f /var/log/auth.log.* & tail -n 0 -F /var/log/auth.log" | geoipmap -title "ssh access"
+```
+
+## fail2ban
+```bash
+$ ssh root@shalloc.com "zcat -f /var/log/fail2ban.log* & tail -n 0 -F /var/log/fail2ban.log" | grep Ban | ./geoipmap -title "fail2ban"
 ```
 
 # Install
