@@ -40,9 +40,9 @@
 			}
 
 			.bubble {
-				stroke: #ccc;
-				stroke-width: 1px;
-				opacity: .6;
+				stroke: #333;
+				stroke-width: .5px;
+				opacity: 1;
 			}
 
 			.bubble:hover {
@@ -152,7 +152,7 @@
 					// radius scale
 					var radius = d3.scale.sqrt()
 						.domain([0, maxcount])
-						.range([0, 40]);
+						.range([2, 15]);
 
 					// color scale
 					var color = d3.scale.sqrt()
