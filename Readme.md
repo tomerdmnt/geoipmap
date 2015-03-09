@@ -32,11 +32,11 @@ script.lua:
 ```lua
 function record(r)
     if r.Country == "Greenland" then
-        -- filter out ips from china
+        -- filter out ips from greenland
         return false
     end
 
-    -- print table
+    -- print values
     print(r.CountryCode)
     print(r.Country)
     print(r.City)
