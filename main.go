@@ -87,7 +87,7 @@ func readStdin(script string) {
 	for scanner.Scan() {
 		if ip := ipRe.FindString(scanner.Text()); ip != "" {
 			if geoipRecord, err := geoipdb.Lookup(ip); err != nil {
-				log.Fatal(err)
+				log.Println(err)
 			} else if geoipRecord != nil {
 				record := newRecord(geoipRecord, ip)
 				processRecord(record, script)
