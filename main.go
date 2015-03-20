@@ -110,7 +110,7 @@ func processRecord(record *Record, script string) {
 		}
 	}
 
-	gijson.Countries[record.Country] = &Country{Name: record.Country}
+	gijson.Countries[record.CountryCode] = &Country{Name: record.Country}
 
 	for _, c := range gijson.Cities {
 		if c.Country == record.Country && c.Name == record.City {

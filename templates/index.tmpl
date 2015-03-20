@@ -120,11 +120,10 @@
 
 			queue()
 				.defer(d3.json, "/resources/world-110m.json")
-				.defer(d3.tsv, "/resources/world-country-names.tsv")
-				.defer(d3.json, "/gidata")
+				.defer(d3.tsv, "/resources/world-country-names-codes.tsv")
 				.await(ready);
 
-			function ready(err, world, names, gidata) {
+			function ready(err, world, names) {
 				if (err) throw err;
 				var countries = topojson.feature(world, world.objects.countries).features;
 
@@ -134,7 +133,7 @@
 						if (n.id == d.id) {
 							d.name = n.name;
 							d.code = n.code;
-							return true
+							return true;
 						}
 					});
 				});
@@ -171,7 +170,7 @@
 						});
 
 					country.attr("class", function(d){
-						return gidata.countries[d.name] ? "country accessed" : "country";
+						return gidata.countries[d.code] ? "country accessed" : "country";
 					})
 
 					gidata.cities = gidata.cities.sort(function(a,b){return b.count-a.count;});
