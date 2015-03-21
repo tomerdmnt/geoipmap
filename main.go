@@ -48,14 +48,16 @@ type Record struct {
 	Latitude    float64
 	Longitude   float64
 	IP          string
+	Line        string
 }
 
-func newRecord(geoipRecord *geoip.Record, ip string) *Record {
+func newRecord(geoipRecord *geoip.Record, ip, line string) *Record {
 	record := &Record{
 		PostalCode: geoipRecord.PostalCode,
 		Latitude:   geoipRecord.Latitude,
 		Longitude:  geoipRecord.Longitude,
 		IP:         ip,
+		Line:		line,
 	}
 	if geoipRecord.Country != nil {
 		record.Country = geoipRecord.Country.Name.String()
@@ -85,11 +87,12 @@ func readStdin(script string) {
 	}
 
 	for scanner.Scan() {
-		if ip := ipRe.FindString(scanner.Text()); ip != "" {
+		line := scanner.Text()
+		if ip := ipRe.FindString(line); ip != "" {
 			if geoipRecord, err := geoipdb.Lookup(ip); err != nil {
 				log.Println(err)
 			} else if geoipRecord != nil {
-				record := newRecord(geoipRecord, ip)
+				record := newRecord(geoipRecord, ip, line)
 				processRecord(record, script)
 			}
 		}
@@ -193,6 +196,8 @@ func main() {
                 return false
             end
 
+            -- original log line
+            print(r.Line)
             -- print values
             print(r.CountryCode)
             print(r.Country)

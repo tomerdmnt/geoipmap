@@ -36,6 +36,8 @@ function record(r)
         return false
     end
 
+    -- original log line
+    print(r.Line)
     -- print values
     print(r.CountryCode)
     print(r.Country)
