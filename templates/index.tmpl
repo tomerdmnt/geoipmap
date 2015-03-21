@@ -127,7 +127,7 @@
 				var countries = topojson.feature(world, world.objects.countries).features;
 
 				// country names
-				countries = countries.filter(function(d){
+				countries.forEach(function(d){
 					return names.some(function(n){
 						if (n.id == d.id) {
 							d.name = n.name;
@@ -153,7 +153,7 @@
 						.domain([0, maxcount])
 						.range([2, 15]);
 					radius = function(r){
-						return radiusbase(r) / Math.pow(zoom.scale(),0.5);
+						return radiusbase(r) / Math.pow(zoom.scale(), .5);
 					}
 
 					// color scale
@@ -169,7 +169,7 @@
 					country.enter().append("path")
 						.attr("d", path)
 						.append("title").text(function(d){
-							return d.name;
+							return d.name || d.id;
 						});
 
 					country.attr("class", function(d){
@@ -201,7 +201,7 @@
 							return color(d.count);
 						})
 						.attr("stroke-width", function(d){
-							return .5 / zoom.scale() + "px";
+							return .4 / zoom.scale() + "px";
 						});
 
 					zoom.on("zoom.circle", function() {
@@ -209,7 +209,7 @@
 							return radius(d.count);
 						})
 						.attr("stroke-width", function(d){
-							return .5 / d3.event.scale + "px";
+							return .4 / d3.event.scale + "px";
 						});
 					});
 				});
