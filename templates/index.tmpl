@@ -41,7 +41,6 @@
 
 			.bubble {
 				stroke: #333;
-				stroke-width: .5px;
 				opacity: 1;
 			}
 
@@ -148,10 +147,14 @@
 					if (err) throw err;
 
 					var maxcount = d3.max(gidata.cities, function(d){ return d.count; });
+
 					// radius scale
-					var radius = d3.scale.sqrt()
+					var radiusbase = d3.scale.sqrt()
 						.domain([0, maxcount])
 						.range([2, 15]);
+					radius = function(r){
+						return radiusbase(r) / Math.pow(zoom.scale(),0.5);
+					}
 
 					// color scale
 					var color = d3.scale.sqrt()
@@ -175,7 +178,7 @@
 
 					gidata.cities = gidata.cities.sort(function(a,b){return b.count-a.count;});
 
-					var circle = g.selectAll("circle", function key(d) { return d.name; })
+					var circle = g.selectAll("circle", function key(d){return d.name;})
 						.data(gidata.cities);
 
 					circle.exit().remove();
@@ -196,7 +199,19 @@
 						})
 						.attr("fill", function(d){
 							return color(d.count);
+						})
+						.attr("stroke-width", function(d){
+							return .5 / zoom.scale() + "px";
 						});
+
+					zoom.on("zoom.circle", function() {
+						circle.attr("r", function(d){
+							return radius(d.count);
+						})
+						.attr("stroke-width", function(d){
+							return .5 / d3.event.scale + "px";
+						});
+					});
 				});
 				}, 1000);
 			}
