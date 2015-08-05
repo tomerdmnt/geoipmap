@@ -5,14 +5,19 @@ import (
 	"github.com/yuin/gopher-lua"
 )
 
-func callScript(script string, record Record) (*Record, error) {
+func newLuaState(script string) (*lua.LState, error) {
+	if script == "" {
+		return nil, nil
+	}
 	L := lua.NewState()
-	defer L.Close()
-
 	if err := L.DoFile(script); err != nil {
 		return nil, err
 	}
+	L.SetGlobal("globals", L.NewTable())
+	return L, nil
+}
 
+func callScript(L *lua.LState, record Record) (*Record, error) {
 	lrecord := luar.New(L, &record)
 
 	if err := L.CallByParam(lua.P{

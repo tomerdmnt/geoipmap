@@ -14,10 +14,54 @@ import (
 	"strconv"
 	"text/template"
 
+	"github.com/yuin/gopher-lua"
 	"github.com/GeertJohan/go.rice"
 	"github.com/skratchdot/open-golang/open"
-	"gopkgs.com/geoip.v1"
+	"github.com/tomerdmnt/geoipmap/vendor/rainycape/geoip"
 )
+
+var usage = `Usage: [geoipmap] [-title <title>] [-script <script>] [-h]
+
+    geoipmap reads logs from stdin and displays the geo ip data on a world map
+
+    EXAMPLES
+
+      NGINX
+
+        $ ssh root@server.com "zcat -f /var/log/nginx/access.log.* & tail -n 0 -F /var/log/nginx/access.log" | geoipmap -title "nginx access"
+
+      SSH
+
+        $ ssh root@server.com "zcat -f /var/log/auth.log.* & tail -n 0 -F /var/log/auth.log" | geoipmap -title "ssh access"
+
+      FAIL2BAN
+
+        $ ssh root@server.com "zcat -f /var/log/fail2ban.log* & tail -n 0 -F /var/log/fail2ban.log" | grep Ban | geoipmap -title "fail2ban"
+
+    LUA SCRIPT EXAMPLE
+
+        function record(r)
+            if r.Country == "Greenland" then
+                -- filter out ips from greenland
+                return false
+            end
+
+            -- original log line
+            print(r.Line)
+            -- print values
+            print(r.CountryCode)
+            print(r.Country)
+            print(r.City)    
+            print(r.CityCode)    
+            print(r.PostalCode)
+            print(r.Latitude)
+            print(r.Longitude)
+            print(r.IP)
+
+            -- the record can be altered
+            r.Longitude = r.Longitude + 10
+        end
+`
 
 type GIJSON struct {
 	Countries map[string]*Country `json:"countries"`
@@ -57,7 +101,7 @@ func newRecord(geoipRecord *geoip.Record, ip, line string) *Record {
 		Latitude:   geoipRecord.Latitude,
 		Longitude:  geoipRecord.Longitude,
 		IP:         ip,
-		Line:		line,
+		Line:       line,
 	}
 	if geoipRecord.Country != nil {
 		record.Country = geoipRecord.Country.Name.String()
@@ -73,7 +117,7 @@ func newRecord(geoipRecord *geoip.Record, ip, line string) *Record {
 var gijson *GIJSON = &GIJSON{Countries: make(map[string]*Country), Cities: []*City{}}
 
 func readStdin(script string) {
-	ipRe := regexp.MustCompile("((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)")
+	ipRe := regexp.MustCompile("((((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))|((?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}))")
 	scanner := bufio.NewScanner(os.Stdin)
 
 	DBBox := rice.MustFindBox("db")
@@ -86,6 +130,11 @@ func readStdin(script string) {
 		log.Fatal(err)
 	}
 
+	L, err := newLuaState(script)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	for scanner.Scan() {
 		line := scanner.Text()
 		if ip := ipRe.FindString(line); ip != "" {
@@ -93,18 +142,18 @@ func readStdin(script string) {
 				log.Println(err)
 			} else if geoipRecord != nil {
 				record := newRecord(geoipRecord, ip, line)
-				processRecord(record, script)
+				processRecord(record, L)
 			}
 		}
 	}
 }
 
-func processRecord(record *Record, script string) {
+func processRecord(record *Record, L *lua.LState) {
 	var found bool = false
 
-	if script != "" {
+	if L != nil {
 		var err error
-		if record, err = callScript(script, *record); err != nil {
+		if record, err = callScript(L, *record); err != nil {
 			log.Fatal(err)
 		}
 		if record == nil {
@@ -170,49 +219,7 @@ func main() {
 	title := flag.String("title", "", "Optional Title")
 	script := flag.String("script", "", "lua script to filter/enrich data")
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, `Usage: [geoipmap] [-title <title>] [-script <script>] [-h]
-
-    geoipmap reads logs from stdin and displays the geo ip data on a world map
-
-    EXAMPLES
-
-      NGINX
-
-        $ ssh root@server.com "zcat -f /var/log/nginx/access.log.* & tail -n 0 -F /var/log/nginx/access.log" | geoipmap -title "nginx access"
-
-      SSH
-
-        $ ssh root@server.com "zcat -f /var/log/auth.log.* & tail -n 0 -F /var/log/auth.log" | geoipmap -title "ssh access"
-
-      FAIL2BAN
-
-        $ ssh root@server.com "zcat -f /var/log/fail2ban.log* & tail -n 0 -F /var/log/fail2ban.log" | grep Ban | geoipmap -title "fail2ban"
-
-    LUA SCRIPT EXAMPLE
-
-        function record(r)
-            if r.Country == "Greenland" then
-                -- filter out ips from greenland
-                return false
-            end
-
-            -- original log line
-            print(r.Line)
-            -- print values
-            print(r.CountryCode)
-            print(r.Country)
-            print(r.City)    
-            print(r.CityCode)    
-            print(r.PostalCode)
-            print(r.Latitude)
-            print(r.Longitude)
-            print(r.IP)
-
-            -- the record can be altered
-            r.Longitude = r.Longitude + 10
-        end
-
-`)
+		fmt.Fprintln(os.Stderr, usage)
 		flag.PrintDefaults()
 	}
 	flag.Parse()
