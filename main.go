@@ -14,13 +14,13 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/yuin/gopher-lua"
 	"github.com/GeertJohan/go.rice"
 	"github.com/skratchdot/open-golang/open"
-	"github.com/tomerdmnt/geoipmap/vendor/rainycape/geoip"
+	"github.com/tomerdmnt/geoipmap/vendor/github.com/rainycape/geoip"
+	"github.com/yuin/gopher-lua"
 )
 
-var usage = `Usage: [geoipmap] [-title <title>] [-script <script>] [-h]
+var usage = `Usage: [geoipmap] [-title <title>] [-script <script>] [-addr <address>] [-h]
 
     geoipmap reads logs from stdin and displays the geo ip data on a world map
 
@@ -218,6 +218,7 @@ func serveIndex(title string) func(http.ResponseWriter, *http.Request) {
 func main() {
 	title := flag.String("title", "", "Optional Title")
 	script := flag.String("script", "", "lua script to filter/enrich data")
+	laddr := flag.String("addr", "", "Address on which to serve up the map")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, usage)
 		flag.PrintDefaults()
@@ -234,8 +235,19 @@ func main() {
 	http.Handle("/resources/", http.FileServer(rice.MustFindBox("public").HTTPBox()))
 	http.HandleFunc("/", serveIndex(*title))
 
-	port, _ := strconv.Atoi(os.Getenv("PORT"))
-	address := fmt.Sprintf("127.0.0.1:%d", port)
+	/* Get the address from the command line or the environment */
+	address := *laddr
+	if "" == address {
+		address = os.Getenv("GIM_ADDR")
+	}
+	/* Failing that, use an ephemeral port on loopback */
+	if "" == address {
+		address = "127.0.0.1:0"
+	}
+	/* If it's a single port, prepend a localhost */
+	if _, err := strconv.Atoi(address); nil == err {
+		address = "127.0.0.1:" + address
+	}
 
 	go readStdin(*script)
 
@@ -245,7 +257,7 @@ func main() {
 	}
 	go func() {
 		addr := fmt.Sprintf("http://%s", l.Addr())
-		fmt.Println(addr)
+		log.Printf("Listening on %v\n", addr)
 		open.Start(addr)
 	}()
 	log.Fatal(http.Serve(l, nil))
