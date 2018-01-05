@@ -16,7 +16,7 @@ import (
 
 	"github.com/GeertJohan/go.rice"
 	"github.com/skratchdot/open-golang/open"
-	"github.com/tomerdmnt/geoipmap/vendor/github.com/rainycape/geoip"
+	"github.com/rainycape/geoip"
 	"github.com/yuin/gopher-lua"
 )
 

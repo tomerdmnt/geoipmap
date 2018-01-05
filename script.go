@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/layeh/gopher-luar"
+	"layeh.com/gopher-luar"
 	"github.com/yuin/gopher-lua"
 )
 
